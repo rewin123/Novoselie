@@ -1,0 +1,22 @@
+[package]
+name = "star-rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy = "*"
+bevy_egui = "*"
+bevy_web_fullscreen = "*"
+bevy_rapier2d = "*"
+fastrand = "1.7.0" # ref: https://github.com/bevyengine/bevy/pull/3992
+
+[workspace]
+resolver ="2"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

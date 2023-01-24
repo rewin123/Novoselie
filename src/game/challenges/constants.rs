@@ -1,0 +1,1 @@
+pub const wrong_answer : &'static str = "Ты ошибся:( Попытайся снова";

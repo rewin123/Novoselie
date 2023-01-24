@@ -7,10 +7,20 @@ const introduction : &'static str = "За троном ты находишь с�
 const congrats : &'static str = "В конце лабиринта ты нашел новую записку!
 В записке указано, что ключ находится за древним музыкуальным инструментом, что дорог хозяйке замка.";
 
+const UP : &'static str = "UP";
+const DOWN : &'static str = "DOWN";
+const LEFT : &'static str = "LEFT";
+const RIGHT : &'static str = "RIGHT";
+
 use bevy::prelude::*;
 use bevy_egui::*;
 
-use crate::game::AppState;
+use crate::game::{AppState, FONT_PATH, GameStyle};
+
+
+const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
+const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
+const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 
 #[derive(Component, Default)]
 struct LabirintPlayer {}
@@ -52,7 +62,8 @@ fn player_move(
 
 fn labirint_setup(
     mut cmds : Commands,
-    asset_server : Res<AssetServer>
+    asset_server : Res<AssetServer>,
+    game_style : Res<GameStyle>
 ) {
     cmds.spawn(Camera2dBundle{
         projection: OrthographicProjection {
@@ -79,6 +90,103 @@ fn labirint_setup(
             });
         }
     }
+
+    cmds.spawn(ButtonBundle {
+        style: Style { 
+            size : Size::new(Val::Px(50.0), Val::Px(50.0)),
+            margin: UiRect::all(Val::Auto),
+            justify_content : JustifyContent::Center,
+            align_items: AlignItems::Center,
+            position_type: PositionType::Relative,
+            position: UiRect {
+                bottom: Val::Px(-300.0),
+                right: Val::Px(-200.0),
+                ..default()
+            },
+            ..default()
+        },
+        background_color: NORMAL_BUTTON.into(),
+        transform : Transform::from_xyz(0.0, 0.0, 1.0),
+        ..default()
+    }).with_children(|parent| {
+        parent.spawn(TextBundle::from_section(
+            UP,
+            game_style.text.clone(),
+        ));
+    });
+
+    cmds.spawn(ButtonBundle {
+        style: Style { 
+            size : Size::new(Val::Px(50.0), Val::Px(50.0)),
+            margin: UiRect::all(Val::Auto),
+            justify_content : JustifyContent::Center,
+            align_items: AlignItems::Center,
+            position_type: PositionType::Relative,
+            position: UiRect {
+                bottom: Val::Percent(-35.0),
+                right: Val::Percent(-35.0),
+                ..default()
+            },
+            ..default()
+        },
+        background_color: NORMAL_BUTTON.into(),
+        transform : Transform::from_xyz(0.0, 0.0, 1.0),
+        ..default()
+    }).with_children(|parent| {
+        parent.spawn(TextBundle::from_section(
+            LEFT,
+            game_style.text.clone(),
+        ));
+    });
+
+    cmds.spawn(ButtonBundle {
+        style: Style { 
+            size : Size::new(Val::Px(50.0), Val::Px(50.0)),
+            margin: UiRect::all(Val::Auto),
+            justify_content : JustifyContent::Center,
+            align_items: AlignItems::Center,
+            position_type: PositionType::Relative,
+            position: UiRect {
+                bottom: Val::Percent(-35.0),
+                right: Val::Percent(35.0),
+                ..default()
+            },
+            ..default()
+        },
+        background_color: NORMAL_BUTTON.into(),
+        transform : Transform::from_xyz(0.0, 0.0, 1.0),
+        ..default()
+    }).with_children(|parent| {
+        parent.spawn(TextBundle::from_section(
+            RIGHT,
+            game_style.text.clone(),
+        ));
+    });
+
+    cmds.spawn(ButtonBundle {
+        style: Style { 
+            size : Size::new(Val::Px(50.0), Val::Px(50.0)),
+            margin: UiRect::all(Val::Auto),
+            justify_content : JustifyContent::Center,
+            align_items: AlignItems::Center,
+            position_type: PositionType::Relative,
+            position: UiRect {
+                bottom: Val::Px(-350.0),
+                right: Val::Px(-200.0),
+                ..default()
+            },
+            ..default()
+        },
+        background_color: NORMAL_BUTTON.into(),
+        transform : Transform::from_xyz(0.0, 0.0, 1.0),
+        ..default()
+    }).with_children(|parent| {
+        parent.spawn(TextBundle::from_section(
+            DOWN,
+            game_style.text.clone(),
+        ));
+    });
+
 }
 
 enum LasbirintStage {

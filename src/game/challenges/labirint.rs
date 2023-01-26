@@ -133,7 +133,7 @@ fn player_move(
     }
 
     let dt = time.delta_seconds();
-    let k = 0.4;
+    let k = 0.3;
     for (cam, mut transform) in &mut cams {
         let cam_pos = transform.translation;
         let smooted_pos = cam_pos * (1.0 - k) + k * pos;
@@ -159,6 +159,26 @@ impl Eq for HashedVec {
 
 }
 
+fn collision_events(
+    mut portals : Query<(&Transform), With<Portal>>,
+    mut players : Query<(&Transform), With<KinematicCharacterController>>,
+    mut state : ResMut<LabitintState>,
+) {
+    if !portals.is_empty() && !players.is_empty() {
+        let portal = portals.iter().next().unwrap();
+        let player = players.iter().next().unwrap();
+
+        let dist = (portal.translation - player.translation).distance(Vec3::ZERO);
+
+        if dist < 100.0 {
+            state.stage = LabirintStage::Finish;
+        }
+    }
+}
+
+#[derive(Component)]
+struct Portal {}
+
 fn labirint_setup(
     mut cmds : Commands,
     asset_server : Res<AssetServer>,
@@ -175,24 +195,26 @@ fn labirint_setup(
         ..default()
     }).insert(LabirintPlayer::default()).id();
 
-    let walk_handle = asset_server.load("Knight Pixel Art/Spritesheet/Hero-walk-Sheet.png");
-    let texture_atlas = TextureAtlas::from_grid(
-        walk_handle,
-        Vec2::new(48.0, 24.0), 
-        6, 
-        1, 
-        None, 
-        None);
-    let texture_atlas_hande = texture_atlases.add(texture_atlas);
+    {
+        let walk_handle = asset_server.load("Knight Pixel Art/Spritesheet/Hero-walk-Sheet.png");
+        let texture_atlas = TextureAtlas::from_grid(
+            walk_handle,
+            Vec2::new(48.0, 24.0), 
+            6, 
+            1, 
+            None, 
+            None);
+        let texture_atlas_hande = texture_atlases.add(texture_atlas);
 
-    cmds.spawn(SpriteSheetBundle {
-        texture_atlas : texture_atlas_hande,
-        transform : Transform::from_scale(Vec3::splat(4.0)),
-        ..default()
-    }).insert(LabirintPlayer::default())
-    .insert(Collider::capsule_y(8.0, 4.0))
-    .insert(RigidBody::KinematicPositionBased)
-    .insert(KinematicCharacterController::default());
+        cmds.spawn(SpriteSheetBundle {
+            texture_atlas : texture_atlas_hande,
+            transform : Transform::from_scale(Vec3::splat(4.0)),
+            ..default()
+        }).insert(LabirintPlayer::default())
+        .insert(Collider::capsule_y(8.0, 4.0))
+        .insert(RigidBody::KinematicPositionBased)
+        .insert(KinematicCharacterController::default());
+    }
 
     let scale = 100.0;
     for x in -100..100 {
@@ -214,6 +236,13 @@ fn labirint_setup(
     
     let mut maze_pos_sets : HashSet<HashedVec> = HashSet::new();
 
+    let mut maze_to_world = |x : i32, y : i32| {
+        let world_x = x as f32 * 2.0;
+        let world_y = -y as f32 * 2.0;
+
+        (world_x, world_y)
+    };
+
     let world_scale = 160.0;
     let mut spawn = |x : f32, y : f32| {
         if !maze_pos_sets.contains(&HashedVec {x : x, y : y}) {
@@ -230,8 +259,7 @@ fn labirint_setup(
 
     for y in 0..maze_size {
         for x in 0..maze_size {
-            let world_x = x as f32 * 2.0;
-            let world_y = -y as f32 * 2.0;
+            let (world_x, world_y) = maze_to_world(x, y);
 
             let field = maze.get_field(&Coordinates::new(x, y)).unwrap();
             if !field.has_passage(&maze_generator::prelude::Direction::West) {
@@ -260,6 +288,28 @@ fn labirint_setup(
     }
 
     println!("{:?}", maze);
+
+    //spawn portal
+    {
+        let atlas = asset_server.load("labirint/portal.png");
+        let texture_atlas = TextureAtlas::from_grid(
+            atlas,
+            Vec2::new(64.0, 64.0), 
+            8, 
+            3, 
+            None, 
+            None);
+        let texture_atlas_hande = texture_atlases.add(texture_atlas);
+
+        let (world_x, world_y) = maze_to_world(maze.goal.x, maze.goal.y);
+
+        cmds.spawn(SpriteSheetBundle {
+            texture_atlas : texture_atlas_hande,
+            transform : Transform::from_scale(Vec3::splat(4.0)).with_translation(Vec3::new(world_x * world_scale, world_y * world_scale, 1.0)),
+            ..default()
+        })
+        .insert(Portal{});
+    }
 
 }
 
@@ -296,6 +346,7 @@ impl Plugin for LabirintChallenge {
         app.add_system_set(SystemSet::on_update(AppState::Chellenge_3)
             .with_system(labirint_on_update)
             .with_system(player_buttons)
-            .with_system(player_move));
+            .with_system(player_move)
+            .with_system(collision_events));
     }
 }

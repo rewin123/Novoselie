@@ -3,6 +3,7 @@ const introduction : &'static str = "За троном ты находишь с�
 Ты берешь в руки факел и начинаешь исследовать неизвестные тебе катакомбы.
 Нужно найти другой выход из них.";
 
+const new_level : &'static str = "Ты находишь спуск на новый этаж лабиринта";
 
 const congrats : &'static str = "В конце лабиринта ты нашел новую записку!
 В записке указано, что ключ находится за древним музыкуальным инструментом, что дорог хозяйке замка.";
@@ -65,23 +66,23 @@ fn player_buttons(
         .show(ctx.ctx_mut(), |ui| {
             egui::Grid::new("joystick grid").show(ui, |ui| {
                 ui.label("");
-                if ui.button("Up").hovered() {
+                if ui.button("Up").is_pointer_button_down_on() {
                     move_info.dy += 1.0;
                 }
                 ui.label("");
                 ui.end_row();
 
-                if ui.button("LEFT").hovered() {
+                if ui.button("LEFT").is_pointer_button_down_on() {
                     move_info.dx += -1.0;
                 }
                 ui.label("");
-                if ui.button("RIGHT").hovered() {
+                if ui.button("RIGHT").is_pointer_button_down_on() {
                     move_info.dx += 1.0;
                 }
                 ui.end_row();
 
                 ui.label("");
-                if ui.button("DOWN").hovered() {
+                if ui.button("DOWN").is_pointer_button_down_on() {
                     move_info.dy += -1.0;
                 }
                 ui.label("");
@@ -91,6 +92,7 @@ fn player_buttons(
 }
 
 fn labirint_on_update(
+    mut cmds : Commands,
     mut state : ResMut<LabitintState>,
     mut ctx : ResMut<EguiContext>,
     mut app_state : ResMut<State<AppState>>
@@ -112,6 +114,11 @@ fn labirint_on_update(
                 ui.label(congrats);
                 if ui.button("Далее").clicked() {
                     app_state.set(AppState::Chellenge_4);
+
+                    for e in &state.scene {
+                        cmds.entity(*e).despawn();
+                    }
+                    
                 }
             });
         },
@@ -160,10 +167,14 @@ impl Eq for HashedVec {
 }
 
 fn collision_events(
+    mut cmds : Commands,
     mut portals : Query<(&Transform), With<Portal>>,
     mut players : Query<(&Transform), With<KinematicCharacterController>>,
     mut state : ResMut<LabitintState>,
 ) {
+    if state.stage != LabirintStage::Game {
+        return;
+    }
     if !portals.is_empty() && !players.is_empty() {
         let portal = portals.iter().next().unwrap();
         let player = players.iter().next().unwrap();
@@ -184,55 +195,32 @@ fn labirint_setup(
     asset_server : Res<AssetServer>,
     game_style : Res<GameStyle>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    mut state : ResMut<LabitintState>
 ) {
-    let camera = cmds.spawn(Camera2dBundle{
-        projection: OrthographicProjection {
-            scale: 0.6,
-            ..default()
-        },
-        camera: Camera {priority: 1, ..default()},
-        transform: Transform::from_xyz(0.0, 0.0, 100.0-0.1).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    }).insert(LabirintPlayer::default()).id();
-
-    {
-        let walk_handle = asset_server.load("Knight Pixel Art/Spritesheet/Hero-walk-Sheet.png");
-        let texture_atlas = TextureAtlas::from_grid(
-            walk_handle,
-            Vec2::new(48.0, 24.0), 
-            6, 
-            1, 
-            None, 
-            None);
-        let texture_atlas_hande = texture_atlases.add(texture_atlas);
-
-        cmds.spawn(SpriteSheetBundle {
-            texture_atlas : texture_atlas_hande,
-            transform : Transform::from_scale(Vec3::splat(4.0)),
-            ..default()
-        }).insert(LabirintPlayer::default())
-        .insert(Collider::capsule_y(8.0, 4.0))
-        .insert(RigidBody::KinematicPositionBased)
-        .insert(KinematicCharacterController::default());
+    if state.scene.len() != 0 {
+        return;
     }
+
+    
 
     let scale = 100.0;
     for x in -100..100 {
         for y in -100..100 {
-            cmds.spawn(SpriteBundle {
+            state.scene.push(cmds.spawn(SpriteBundle {
                 transform: Transform::from_xyz(x as f32 * scale, y as f32 * scale, -1.0),
                 texture: asset_server.load("Platformer/Ground_06.png"),
                 ..default()
-            });
+            }).id());
         }
     }
 
     //generate labirint
     let wall_tex = asset_server.load("cobblestone.png");
 
-    let mut generator = RbGenerator::new(Some([42; 32]));
-    let maze_size = 3;
+    let mut generator = RbGenerator::new(Some([14; 32]));
+    let maze_size = 64;
     let maze = generator.generate(maze_size, maze_size).unwrap();
+    println!("Maze size: {}", maze_size);
     
     let mut maze_pos_sets : HashSet<HashedVec> = HashSet::new();
 
@@ -246,13 +234,13 @@ fn labirint_setup(
     let world_scale = 160.0;
     let mut spawn = |x : f32, y : f32| {
         if !maze_pos_sets.contains(&HashedVec {x : x, y : y}) {
-            cmds.spawn(SpriteBundle {
+            state.scene.push(cmds.spawn(SpriteBundle {
                 texture : wall_tex.clone(),
                 transform : Transform::from_xyz(x * world_scale, y * world_scale, 0.5),
                 ..default()
             })
             .insert(Collider::cuboid(80.0, 80.0))
-            .insert(RigidBody::Fixed);
+            .insert(RigidBody::Fixed).id());
             maze_pos_sets.insert(HashedVec {x : x, y : y});
         }
     };
@@ -287,7 +275,7 @@ fn labirint_setup(
         
     }
 
-    println!("{:?}", maze);
+    // println!("{:?}", maze);
 
     //spawn portal
     {
@@ -303,12 +291,46 @@ fn labirint_setup(
 
         let (world_x, world_y) = maze_to_world(maze.goal.x, maze.goal.y);
 
-        cmds.spawn(SpriteSheetBundle {
+        state.scene.push(cmds.spawn(SpriteSheetBundle {
             texture_atlas : texture_atlas_hande,
             transform : Transform::from_scale(Vec3::splat(4.0)).with_translation(Vec3::new(world_x * world_scale, world_y * world_scale, 1.0)),
             ..default()
         })
-        .insert(Portal{});
+        .insert(Portal{}).id());
+    }
+
+    let camera = cmds.spawn(Camera2dBundle{
+        projection: OrthographicProjection {
+            scale: 2.0,
+            ..default()
+        },
+        camera: Camera {priority: 1, ..default()},
+        transform: Transform::from_xyz(0.0, 0.0, 100.0-0.1).looking_at(Vec3::ZERO, Vec3::Y),
+        ..default()
+    }).insert(LabirintPlayer::default()).id();
+    state.scene.push(camera.clone());
+
+    {
+        let (world_x, world_y) = maze_to_world(maze.start.x, maze.start.y);
+
+        let walk_handle = asset_server.load("Knight Pixel Art/Spritesheet/Hero-walk-Sheet.png");
+        let texture_atlas = TextureAtlas::from_grid(
+            walk_handle,
+            Vec2::new(48.0, 24.0), 
+            6, 
+            1, 
+            None, 
+            None);
+        let texture_atlas_hande = texture_atlases.add(texture_atlas);
+
+        state.scene.push(cmds.spawn(SpriteSheetBundle {
+            texture_atlas : texture_atlas_hande,
+            transform : Transform::from_scale(Vec3::splat(4.0)).with_translation(Vec3::new(world_x * world_scale, world_y * world_scale, 1.0)),
+            ..default()
+        }).insert(LabirintPlayer::default())
+        .insert(Collider::capsule_y(8.0, 4.0))
+        .insert(RigidBody::KinematicPositionBased)
+        .insert(KinematicCharacterController::default()).id());
     }
 
 }
@@ -317,7 +339,7 @@ fn labirint_setup(
 enum LabirintStage {
     Introduction,
     Game,
-    Finish
+    Finish,
 }
 
 impl Default for LabirintStage {
@@ -328,7 +350,9 @@ impl Default for LabirintStage {
 
 #[derive(Default, Resource)]
 struct LabitintState {
-    pub stage : LabirintStage
+    pub stage : LabirintStage,
+    pub scene : Vec<Entity>,
+    pub finished_lvls : i32
 }
 
 pub struct LabirintChallenge {}
@@ -340,10 +364,11 @@ impl Plugin for LabirintChallenge {
         app.insert_resource(LabitintState::default());
         app.insert_resource(PlayerMoveInfo::default());
 
-        app.add_system_set(SystemSet::on_enter(AppState::Chellenge_3)
-            .with_system(labirint_setup));
+        // app.add_system_set(SystemSet::on_enter(AppState::Chellenge_3)
+        //     );
 
         app.add_system_set(SystemSet::on_update(AppState::Chellenge_3)
+            .with_system(labirint_setup)
             .with_system(labirint_on_update)
             .with_system(player_buttons)
             .with_system(player_move)

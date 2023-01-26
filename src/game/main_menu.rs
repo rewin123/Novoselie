@@ -4,7 +4,7 @@ use bevy_egui::*;
 fn startup_menu(
     mut set : ResMut<EguiSettings>,
     mut windows : ResMut<Windows>) {
-    set.scale_factor = 1000.0 / windows.get_primary().unwrap().width() as f64;
+    set.scale_factor = 2000.0 / windows.get_primary().unwrap().width() as f64;
 }
 
 fn main_menu_on_update(mut ctx: ResMut<EguiContext>) {

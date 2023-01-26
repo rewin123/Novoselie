@@ -10,6 +10,7 @@ bevy = "*"
 bevy_egui = "*"
 bevy_web_fullscreen = "*"
 bevy_rapier2d = "*"
+maze_generator = "*"
 fastrand = "1.7.0" # ref: https://github.com/bevyengine/bevy/pull/3992
 
 [workspace]

@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 //use bevy_hanabi::prelude::*;
+use bevy_rapier2d::prelude::*;
 
 pub mod constants;
 pub mod utils;
@@ -17,6 +18,7 @@ struct ViewportPlugin {}
 impl Plugin for ViewportPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(FullViewportPlugin);
+        println!("Hello wasm");
     }
 }
 #[cfg(not(target_arch="wasm32"))]
@@ -33,14 +35,15 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
                 title: "StarRust".to_string(),
-                width: SCREEN_WIDTH,
-                height: SCREEN_HEIGHT,
+                fit_canvas_to_parent : true,
                 ..default()
             },
             ..default()
-        }))
+        })
+        .set(ImagePlugin::default_nearest()))
         .add_plugin(EguiPlugin)
         .add_plugin(game::Game{})
-        .add_plugin(ViewportPlugin{})
+        .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
+        .add_plugin(RapierDebugRenderPlugin::default())
         .run();
 }

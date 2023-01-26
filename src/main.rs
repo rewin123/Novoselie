@@ -30,8 +30,8 @@ impl Plugin for ViewportPlugin {
 
 fn main() {
     App::new()
-        .add_state(AppState::Chellenge_3)
-        .insert_resource(ClearColor(Color::rgb(0.1, 0.1, 0.27)))
+        .add_state(AppState::Chellenge_5)
+        .insert_resource(ClearColor(Color::rgb(74.0 / 255.0, 52.0 / 255.0, 27.0 / 255.0)))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
                 title: "StarRust".to_string(),

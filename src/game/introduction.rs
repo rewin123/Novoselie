@@ -17,6 +17,10 @@ fn introduction_on_update(
         });
 }
 
+pub struct IntroductionState {
+    pub texture : egui::TextureId
+}
+
 pub struct Introduction {}
 
 impl Plugin for Introduction {

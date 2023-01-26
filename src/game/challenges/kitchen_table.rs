@@ -24,6 +24,8 @@ fn kitchen_table_on_update(
 ) {
     egui::CentralPanel::default()
         .show(ctx.ctx_mut(), |ui| {
+
+
             ui.label(question);
 
             ui.add(egui::TextEdit::singleline(&mut state.answer));
@@ -51,7 +53,16 @@ fn kitchen_table_on_update(
 #[derive(Resource, Default)]
 struct KitchenTableState {
     pub answer : String,
-    pub show_err : bool
+    pub show_err : bool,
+    pub texture : egui::TextureId
+}
+
+fn kitchen_setup_state(
+    mut state : ResMut<KitchenTableState>,
+    mut asset_server : Res<AssetServer>,
+    mut ctx : ResMut<EguiContext>
+) {
+    state.texture = ctx.add_image(asset_server.load("chs/1/background.png"));
 }
 
 pub struct KitchenTableChallenge {}
@@ -61,6 +72,8 @@ impl Plugin for KitchenTableChallenge {
 
         app.insert_resource(KitchenTableState::default());
 
+        app.add_system_set(SystemSet::on_enter(AppState::Chellenge_1)
+            .with_system(kitchen_setup_state));
         app.add_system_set(SystemSet::on_update(AppState::Chellenge_1)
             .with_system(kitchen_table_on_update));
     }

@@ -5,8 +5,7 @@ const introduction : &'static str = "За троном ты находишь с�
 
 const new_level : &'static str = "Ты находишь спуск на новый этаж лабиринта";
 
-const congrats : &'static str = "В конце лабиринта ты нашел новую записку!
-В записке указано, что ключ находится за древним музыкуальным инструментом, что дорог хозяйке замка.";
+const congrats : &'static str = "В конце лабиринта ты нашел новую записку!";
 
 const UP : &'static str = "UP";
 const DOWN : &'static str = "DOWN";
@@ -201,23 +200,10 @@ fn labirint_setup(
         return;
     }
 
-    
-
-    let scale = 100.0;
-    for x in -100..100 {
-        for y in -100..100 {
-            state.scene.push(cmds.spawn(SpriteBundle {
-                transform: Transform::from_xyz(x as f32 * scale, y as f32 * scale, -1.0),
-                texture: asset_server.load("Platformer/Ground_06.png"),
-                ..default()
-            }).id());
-        }
-    }
-
     //generate labirint
     let wall_tex = asset_server.load("cobblestone.png");
 
-    let mut generator = RbGenerator::new(Some([14; 32]));
+    let mut generator = RbGenerator::new(Some([13; 32]));
     let maze_size = 64;
     let maze = generator.generate(maze_size, maze_size).unwrap();
     println!("Maze size: {}", maze_size);
